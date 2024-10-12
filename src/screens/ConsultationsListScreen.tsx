@@ -1,83 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { NativeBaseProvider, Box, Button, Center, FlatList, Text, Textarea, Select, CheckIcon } from 'native-base';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import axios from 'axios';
 
-type ConsultationsListScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ConsultationsList'>;
+interface Consultation {
+  id: number;
+  date: string;
+  doctor: string;
+  specialty: string;
+  status: string;
+  username: string;
+}
 
-type Props = {
-  navigation: ConsultationsListScreenNavigationProp;
-};
-
-const ConsultationsListScreen = ({ navigation }: Props) => {
-  const [consultations, setConsultations] = useState([]);
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState('');
+const ConsultationsListScreen = () => {
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
 
   useEffect(() => {
-    // Obter o token JWT e os dados do usuário
-    const fetchUserData = async () => {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://localhost:3000/auth/user', {
-        headers: { Authorization: `Bearer ${token}` },
+    // Fetch consultations from the backend
+    axios.get('http://localhost:3000/api/consultations')
+      .then((response) => {
+        setConsultations(response.data.consultations);
+      })
+      .catch((error) => {
+        console.error('Erro ao buscar consultas:', error);
       });
-      setUsername(response.data.username);
-      setRole(response.data.role);
-
-      // Obter as consultas do backend
-      const consultationsResponse = await axios.get('http://localhost:3000/consultas', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setConsultations(consultationsResponse.data);
-    };
-    fetchUserData();
   }, []);
 
-  const handleEditConsultation = (consultationId: string) => {
-    // Implementação da ação de edição para admin
-    navigation.navigate('EditConsultation', { consultationId });
-  };
-
-  const handleRequestChange = (consultationId: string) => {
-    // Implementação da solicitação de alteração para usuário comum
-    alert(`Solicitação de alteração enviada para consulta ${consultationId}`);
-  };
+  const renderItem = ({ item }: { item: Consultation }) => (
+    <View style={styles.consultationItem}>
+      <Text>Paciente: {item.username}</Text>
+      <Text>Data: {item.date}</Text>
+      <Text>Médico: {item.doctor}</Text>
+      <Text>Especialidade: {item.specialty}</Text>
+      <Text>Status: {item.status}</Text>
+    </View>
+  );
 
   return (
-    <NativeBaseProvider>
-      <Center flex={1} bg="white">
-        <Box>
-          <Text>Bem-vindo, {username} ({role})</Text>
-          <FlatList
-            data={consultations}
-            renderItem={({ item }) => (
-              <Box borderBottomWidth="1" mb={4} p={2}>
-                <Text>Consulta com {item.doctor}</Text>
-                <Text>Data: {item.date}</Text>
-                <Text>Status: {item.status}</Text>
-                
-                {role === 'admin' ? (
-                  <Button mt={2} onPress={() => handleEditConsultation(item.id)}>
-                    Editar Consulta
-                  </Button>
-                ) : (
-                  <>
-                    <Textarea placeholder="Descreva sua solicitação" mt={2} />
-                    <Button mt={2} onPress={() => handleRequestChange(item.id)}>
-                      Solicitar Alteração
-                    </Button>
-                  </>
-                )}
-              </Box>
-            )}
-            keyExtractor={(item) => item.id}
-          />
-        </Box>
-      </Center>
-    </NativeBaseProvider>
+    <View style={styles.container}>
+      <FlatList
+        data={consultations}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+      />
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  consultationItem: {
+    padding: 16,
+    marginVertical: 8,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+});
 
 export default ConsultationsListScreen;
