@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Alert as RNAlert } from 'react-native'; // Importar o Alert do React Native
 import { login } from '../api/auth'; // Importe a função de login que você já criou
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importe o AsyncStorage
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,12 +21,15 @@ const LoginScreen = ({ navigation }: Props) => {
 
   const handleLogin = async () => {
     try {
-      const token = await login(username, password);
+      const token = await login(username, password);  // Faz login e obtém o token
       console.log('Token:', token);
+      
+      // Armazena o token no AsyncStorage
+      await AsyncStorage.setItem('token', token);
+      
       RNAlert.alert('Login realizado com sucesso!');
-      navigation.navigate('ConsultationsList');
+      navigation.navigate('ConsultationsList');  // Navega para a lista de consultas
     } catch (err: unknown) {
-      // Verificar se err é uma instância de Error
       if (err instanceof Error) {
         RNAlert.alert('Erro', err.message);
       } else {
